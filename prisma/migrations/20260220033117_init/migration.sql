@@ -104,6 +104,7 @@ CREATE TABLE "Tag" (
 CREATE TABLE "Taggle" (
     "id" SERIAL NOT NULL,
     "typeId" INTEGER NOT NULL,
+    "type" VARCHAR(7) NOT NULL,
     "tagId" INTEGER NOT NULL,
 
     CONSTRAINT "Taggle_pkey" PRIMARY KEY ("id")
@@ -138,7 +139,7 @@ CREATE TABLE "Otp" (
     "id" SERIAL NOT NULL,
     "phone" VARCHAR(15) NOT NULL,
     "code" VARCHAR(6) NOT NULL,
-    "remenberToken" TEXT NOT NULL,
+    "rememberToken" TEXT NOT NULL,
     "verifyToken" TEXT,
     "count" SMALLINT NOT NULL DEFAULT 0,
     "errorCount" SMALLINT NOT NULL DEFAULT 0,
@@ -171,9 +172,6 @@ ALTER TABLE "Product" ADD CONSTRAINT "Product_typeId_fkey" FOREIGN KEY ("typeId"
 
 -- AddForeignKey
 ALTER TABLE "Image" ADD CONSTRAINT "Image_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Taggle" ADD CONSTRAINT "Taggle_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "Type"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Taggle" ADD CONSTRAINT "Taggle_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
