@@ -1,38 +1,37 @@
-import { prisma } from "../src/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcrypt";
+import { faker } from "@faker-js/faker";
+
+const prisma = new PrismaClient();
 
 async function main() {
-  // Create a new user with a post
-  const user = await prisma.user.create({
-    data: {
-      name: "fddfdfdd seed",
-      email: "hdfdflsslo@prisma.io",
-      posts: {
-        create: {
-          title: " fjoepvm",
-          content: "Thisfdf is my first post!",
-          published: true,
-        },
-      },
-    },
-    include: {
-      posts: true,
-    },
-  });
-  console.log("Created user:", user);
+  const users = faker.helpers.multiple(
+    () => ({
+      phone: faker.phone.number({ style: "international" }),
+      password: "12345678",
+      randToken: faker.internet.jwt(),
+    }),
+    { count: 10 }
+  );
 
-  // Fetch all users with their posts
-  const allUsers = await prisma.user.findMany({
-    include: {
-      posts: true,
-    },
-  });
-  console.log("All users:", JSON.stringify(allUsers, null, 2));
+  const salt = await bcrypt.genSalt(10);
+
+  for (const user of users) {
+    const hashedPassword = await bcrypt.hash(user.password, salt);
+    await prisma.user.create({
+      data: {
+        phone: user.phone,
+        password: hashedPassword,
+        randToken: user.randToken,
+      },
+    });
+  }
+
+  console.log("Seeding completed");
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
+  .then(async () => await prisma.$disconnect())
   .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();
