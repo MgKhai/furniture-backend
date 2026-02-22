@@ -4,9 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import { limiter } from "./middleware/rateLimiter";
-import { check } from "./middleware/check";
 import { Request, Response, NextFunction } from "express";
-import healthRoutes from "./routes/v1/health";
+import authRoutes from "./routes/v1/auth/auth";
 
 interface CustomRequest extends Request {
   userId?: number;
@@ -23,7 +22,7 @@ app
   .use(compression())
   .use(limiter);
 
-app.use("/api/v1", healthRoutes);
+app.use("/api/v1", authRoutes);
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   const status = error.status || 500;
   const message = error.message || "Something went wrong";
