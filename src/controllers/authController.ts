@@ -1,11 +1,13 @@
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction } from "express";
-import { body, check, validationResult } from "express-validator";
+import { body, validationResult } from "express-validator";
 import {
   createOtp,
+  createUser,
   getOtpByPhone,
   getUserByPhone,
   updateOtp,
+  updateUser,
 } from "../services/authService";
 import {
   checkOtpErrorIfSameDate,
@@ -14,7 +16,9 @@ import {
 } from "../utils/auth";
 import { generateOTP, generateToken } from "../utils/generate";
 import moment from "moment";
+import jwt from "jsonwebtoken";
 
+// register
 export const register = [
   body("phone", "Invalid phone number")
     .trim()
@@ -100,6 +104,7 @@ export const register = [
   },
 ];
 
+// verify otp
 export const verifyOtp = [
   body("phone", "Invalid phone number")
     .trim()
@@ -119,7 +124,7 @@ export const verifyOtp = [
       return next(error);
     }
 
-    let { phone, otp, token } = req.body;
+    const { phone, otp, token } = req.body;
 
     const user = await getUserByPhone(phone);
     checkUserExist(user);
@@ -137,7 +142,7 @@ export const verifyOtp = [
       const otpData = {
         errorCount: 5,
       };
-      result = await updateOtp(otpRow!.id, otpData);
+      await updateOtp(otpRow!.id, otpData);
 
       const error: any = new Error("Invalid token");
       error.status = 400;
@@ -190,8 +195,125 @@ export const verifyOtp = [
 
     res.status(200).json({
       measssage: "OTP is successfully verified.",
-      phone: result?.phone,
-      token: result?.verifyToken,
+      phone: result!.phone,
+      token: result!.verifyToken,
     });
+  },
+];
+
+// confirm password
+export const confirmPassword = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches(/^[0-9]{9}$/),
+  body("password", "Invalid password")
+    .trim()
+    .notEmpty()
+    .matches(/^[0-9]{8}$/)
+    .withMessage("Password must be 8 digits."),
+  body("token", "Invalid token").trim().notEmpty().escape(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.errorCode = "Error_invalid";
+      return next(error);
+    }
+
+    const { phone, password, token } = req.body;
+
+    const user = await getUserByPhone(phone);
+    checkUserExist(user);
+
+    const otpRow = await getOtpByPhone(phone);
+    checkOtpRow(otpRow);
+
+    if (otpRow?.errorCount === 5) {
+      const error: any = new Error(
+        "This request may be an attack.If not, try again tomorrow."
+      );
+      error.status = 400;
+      error.errorCode = "Error_BadRequest";
+      throw error;
+    }
+
+    if (otpRow?.verifyToken !== token) {
+      const otpData = {
+        errorCount: 5,
+      };
+      await updateOtp(otpRow!.id, otpData);
+
+      const error: any = new Error("Invalid token");
+      error.status = 400;
+      error.errorCode = "Error_Invalid";
+      throw error;
+    }
+
+    const isExpired = moment().diff(otpRow?.updatedAt, "minutes") > 10;
+
+    if (isExpired) {
+      const error: any = new Error(
+        "Your request is expired. Please try again."
+      );
+      error.status = 403;
+      error.errorCode = "Error_Expired";
+      throw error;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    const userData = {
+      phone,
+      password: hashPassword,
+      randToken: "I will replace soon.",
+    };
+
+    const newUser = await createUser(userData);
+
+    const accessTokenPayLoad = { id: newUser.id };
+    const accessToken = jwt.sign(
+      accessTokenPayLoad,
+      process.env.ACCESS_TOKEN_SECRET!,
+      { expiresIn: 15 * 60 }
+    );
+
+    const refreshTokenPayLoad = { id: newUser.id, phone: newUser.phone };
+    const refreshToken = jwt.sign(
+      refreshTokenPayLoad,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d",
+      }
+    );
+
+    const userUpdateData = {
+      randToken: refreshToken,
+    };
+
+    await updateUser(newUser.id, userUpdateData);
+
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 30 * 60 * 60 * 1000, // 30 days
+      })
+      .status(201)
+      .json({
+        message: "successfully created an account.",
+        userid: newUser.id,
+        accessToken,
+        refreshToken,
+      });
   },
 ];
