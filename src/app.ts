@@ -19,8 +19,8 @@ app
   .use(express.json())
   .use(cors())
   .use(helmet())
-  .use(compression())
-  .use(limiter);
+  .use(compression());
+// .use(limiter);
 
 app.use("/api/v1", authRoutes);
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {

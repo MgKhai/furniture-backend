@@ -138,7 +138,7 @@ CREATE TABLE "ProductsOnOrder" (
 CREATE TABLE "Otp" (
     "id" SERIAL NOT NULL,
     "phone" VARCHAR(15) NOT NULL,
-    "code" VARCHAR(6) NOT NULL,
+    "code" TEXT NOT NULL,
     "rememberToken" TEXT NOT NULL,
     "verifyToken" TEXT,
     "count" SMALLINT NOT NULL DEFAULT 0,
@@ -157,6 +157,9 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Order_code_key" ON "Order"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Otp_phone_key" ON "Otp"("phone");
 
 -- AddForeignKey
 ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
