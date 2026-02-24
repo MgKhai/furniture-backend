@@ -7,8 +7,13 @@ import {
   getUserByPhone,
   updateOtp,
 } from "../services/authService";
-import { checkOtpErrorIfSameDate, checkUserExist } from "../utils/auth";
+import {
+  checkOtpErrorIfSameDate,
+  checkOtpRow,
+  checkUserExist,
+} from "../utils/auth";
 import { generateOTP, generateToken } from "../utils/generate";
+import moment from "moment";
 
 export const register = [
   body("phone", "Invalid phone number")
@@ -33,7 +38,8 @@ export const register = [
     const user = await getUserByPhone(phone);
     checkUserExist(user);
 
-    const otp = generateOTP();
+    // const otp = generateOTP();
+    const otp = 123456;
     const salt = await bcrypt.genSalt(10);
     const hashOtp = await bcrypt.hash(otp.toString(), salt);
     const rememberToken = generateToken();
@@ -60,7 +66,7 @@ export const register = [
           code: hashOtp,
           rememberToken,
           count: 1,
-          error: 0,
+          errorCount: 0,
         };
 
         result = await updateOtp(otpRow.id, otpData);
@@ -86,6 +92,106 @@ export const register = [
       }
     }
 
-    res.status(200).json({ message: result });
+    res.status(200).json({
+      message: `We are sending OTP to 09${result.phone}`,
+      phone: result.phone,
+      token: result.rememberToken,
+    });
+  },
+];
+
+export const verifyOtp = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches(/^[0-9]{9}$/),
+  body("otp", "Invalid OTP")
+    .trim()
+    .notEmpty()
+    .matches(/^[0-9]{6}$/),
+  body("token", "Invalid token").trim().notEmpty().escape(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.errorCode = "Error_invalid";
+      return next(error);
+    }
+
+    let { phone, otp, token } = req.body;
+
+    const user = await getUserByPhone(phone);
+    checkUserExist(user);
+
+    const otpRow = await getOtpByPhone(phone);
+    checkOtpRow(otpRow);
+
+    const lateOtpVerify = new Date(otpRow!.updatedAt).toLocaleDateString();
+    const today = new Date().toLocaleDateString();
+    const isSameDate = lateOtpVerify === today;
+    checkOtpErrorIfSameDate(isSameDate, otpRow!.errorCount);
+    let result;
+
+    if (otpRow?.rememberToken !== token) {
+      const otpData = {
+        errorCount: 5,
+      };
+      result = await updateOtp(otpRow!.id, otpData);
+
+      const error: any = new Error("Invalid token");
+      error.status = 400;
+      error.errorCode = "Error_Invalid";
+      throw error;
+    }
+
+    const isMatchOtp = await bcrypt.compare(otp, otpRow!.code);
+    const isExpired = moment().diff(otpRow?.updatedAt, "minutes") > 2;
+
+    if (isMatchOtp) {
+      if (isExpired) {
+        const error: any = new Error("OTP is expired.");
+        error.status = 403;
+        error.errorCode = "Error_Expired";
+        throw error;
+      }
+      const verifyToken = await generateToken();
+      const otpData = {
+        verifyToken,
+        errorCount: 0,
+        count: 1,
+      };
+
+      result = await updateOtp(otpRow!.id, otpData);
+    }
+
+    if (!isMatchOtp) {
+      if (!isSameDate) {
+        const otpData = {
+          errorCount: 1,
+        };
+
+        await updateOtp(otpRow!.id, otpData);
+      } else {
+        const otpData = {
+          errorCount: {
+            increament: 1,
+          },
+        };
+
+        await updateOtp(otpRow!.id, otpData);
+      }
+
+      const error: any = new Error("OTP is incorrect.");
+      error.status = 401;
+      error.errorCode = "Error_Invalid";
+      throw error;
+    }
+
+    res.status(200).json({
+      measssage: "OTP is successfully verified.",
+      phone: result?.phone,
+      token: result?.verifyToken,
+    });
   },
 ];
