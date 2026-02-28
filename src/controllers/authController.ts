@@ -13,6 +13,7 @@ import {
   checkOtpErrorIfSameDate,
   checkOtpRow,
   checkUserExist,
+  checkUserIfNotExist,
 } from "../utils/auth";
 import { generateOTP, generateToken } from "../utils/generate";
 import moment from "moment";
@@ -312,8 +313,129 @@ export const confirmPassword = [
       .json({
         message: "successfully created an account.",
         userid: newUser.id,
-        accessToken,
-        refreshToken,
+      });
+  },
+];
+
+// login
+export const login = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches(/^[0-9]{9}$/),
+  body("password", "Invalid password")
+    .trim()
+    .notEmpty()
+    .matches(/^[0-9]{8}$/)
+    .withMessage("Password must be 8 digits."),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.errorCode = "Error_invalid";
+      return next(error);
+    }
+
+    let phone = req.body.phone;
+    const password = req.body.password;
+
+    if (phone.slice(0, 2) == "09") {
+      phone = phone.substring(2, phone.length);
+    }
+    const user = await getUserByPhone(phone);
+    checkUserIfNotExist(user);
+
+    if (user?.status === "FREEZE") {
+      const error: any = new Error(
+        "Your account is freezed. Please contact to support center."
+      );
+      error.status = 403;
+      error.errorCode = "Error_Forbidden";
+      throw error;
+    }
+
+    const isMatchPassword = await bcrypt.compare(password, user!.password);
+
+    if (!isMatchPassword) {
+      const lastRequest = new Date(user!.updatedAt).toLocaleDateString();
+      const today = new Date().toLocaleDateString();
+      const isSameDate = lastRequest === today;
+
+      if (!isSameDate) {
+        const userData = {
+          errorLoginCount: 1,
+        };
+        await updateUser(user!.id, userData);
+      } else {
+        if (user!.errorLoginCount >= 3) {
+          const userData = {
+            status: "FREEZE",
+          };
+          await updateUser(user!.id, userData);
+
+          const error: any = new Error(
+            "Your account is freezed. Please contact to support center."
+          );
+          error.status = 403;
+          error.errorCode = "Error_Forbidden";
+          throw error;
+        } else {
+          const userData = {
+            errorLoginCount: {
+              increment: 1,
+            },
+          };
+          await updateUser(user!.id, userData);
+
+          const error: any = new Error("Password is incorrect.");
+          error.status = 401;
+          error.errorCode = "Error_Unauthenticated";
+          throw error;
+        }
+      }
+    }
+
+    const accessTokenPayLoad = { id: user!.id };
+    const accessToken = jwt.sign(
+      accessTokenPayLoad,
+      process.env.ACCESS_TOKEN_SECRET!,
+      { expiresIn: 15 * 60 }
+    );
+
+    const refreshTokenPayLoad = { id: user!.id, phone: user!.phone };
+    const refreshToken = jwt.sign(
+      refreshTokenPayLoad,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d",
+      }
+    );
+
+    const userData = {
+      randToken: refreshToken,
+      errorLoginCount: 0,
+    };
+
+    await updateUser(user!.id, userData);
+
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 30 * 60 * 60 * 1000, // 30 days
+      })
+      .status(200)
+      .json({
+        message: "successfully logged in.",
+        userid: user!.id,
       });
   },
 ];

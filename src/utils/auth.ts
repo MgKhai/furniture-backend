@@ -3,8 +3,17 @@ export const checkUserExist = (user: any) => {
     const error: any = new Error(
       "This phone number has already been registered"
     );
-    error.status = 409;
+    error.status = 401;
     error.errorCode = "Error_AlreadyExit";
+    throw error;
+  }
+};
+
+export const checkUserIfNotExist = (user: any) => {
+  if (!user) {
+    const error: any = new Error("This phone number has not registered");
+    error.status = 401;
+    error.errorCode = "Error_Unauthenticated";
     throw error;
   }
 };
