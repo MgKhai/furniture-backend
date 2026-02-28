@@ -1,6 +1,7 @@
 import express from "express";
 import {
   confirmPassword,
+  login,
   register,
   verifyOtp,
 } from "../../../controllers/authController";
@@ -10,6 +11,7 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/verify-otp", verifyOtp);
 router.post("/confirm-password", confirmPassword);
+router.post("/login", login);
 
 router.get("/testing", (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({ message: "it is okay" });
