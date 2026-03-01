@@ -10,6 +10,14 @@ export const getUserByPhone = async (phone: string) => {
   });
 };
 
+export const getUserById = async (id: number) => {
+  return prisma.user.findUnique({
+    where: {
+      id,
+    },
+  });
+};
+
 export const getOtpByPhone = async (phone: string) => {
   return prisma.otp.findUnique({
     where: {
