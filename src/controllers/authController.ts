@@ -323,7 +323,7 @@ export const login = [
   body("phone", "Invalid phone number")
     .trim()
     .notEmpty()
-    .matches(/^[0-9]{9}$/),
+    .matches(/^[0-9]{11}$/),
   body("password", "Invalid password")
     .trim()
     .notEmpty()
@@ -436,7 +436,7 @@ export const login = [
       .status(200)
       .json({
         message: "successfully logged in.",
-        userid: user!.id,
+        userId: user!.id,
       });
   },
 ];
@@ -463,7 +463,7 @@ export const logout = async (
       phone: string;
     };
   } catch (error: any) {
-    const error: any = new Error("Invalid Refresh Token.");
+    error.message = "Invalid Refresh Token.";
     error.status = 401;
     error.errorCode = "Error_InvalidRefreshToken";
     return next(error);
