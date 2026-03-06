@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction } from "express";
 import { body, validationResult } from "express-validator";
+import { errorCodes } from "../config/errorCodes";
 import {
   createOtp,
   createUser,
@@ -32,7 +33,7 @@ export const register = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.errorCode = "Error_invalid";
+      error.errorCode = errorCodes.invalid;
       return next(error);
     }
 
@@ -82,7 +83,7 @@ export const register = [
             "OTP is allowed to request 3 times per day."
           );
           error.status = 405;
-          error.errorCode = "Error_OverLimit";
+          error.errorCode = errorCodes.overLimit;
           throw error;
         } else {
           const otpData = {
@@ -122,7 +123,7 @@ export const verifyOtp = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.errorCode = "Error_invalid";
+      error.errorCode = errorCodes.invalid;
       return next(error);
     }
 
@@ -148,7 +149,7 @@ export const verifyOtp = [
 
       const error: any = new Error("Invalid token");
       error.status = 400;
-      error.errorCode = "Error_Invalid";
+      error.errorCode = errorCodes.invalid;
       throw error;
     }
 
@@ -159,7 +160,7 @@ export const verifyOtp = [
       if (isExpired) {
         const error: any = new Error("OTP is expired.");
         error.status = 403;
-        error.errorCode = "Error_Expired";
+        error.errorCode = errorCodes.otpExpired;
         throw error;
       }
       const verifyToken = await generateToken();
@@ -191,7 +192,7 @@ export const verifyOtp = [
 
       const error: any = new Error("OTP is incorrect.");
       error.status = 401;
-      error.errorCode = "Error_Invalid";
+      error.errorCode = errorCodes.invalid;
       throw error;
     }
 
@@ -220,7 +221,7 @@ export const confirmPassword = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.errorCode = "Error_invalid";
+      error.errorCode = errorCodes.invalid;
       return next(error);
     }
 
@@ -237,7 +238,7 @@ export const confirmPassword = [
         "This request may be an attack.If not, try again tomorrow."
       );
       error.status = 400;
-      error.errorCode = "Error_BadRequest";
+      error.errorCode = errorCodes.badRequest;
       throw error;
     }
 
@@ -249,7 +250,7 @@ export const confirmPassword = [
 
       const error: any = new Error("Invalid token");
       error.status = 400;
-      error.errorCode = "Error_Invalid";
+      error.errorCode = errorCodes.invalid;
       throw error;
     }
 
@@ -260,7 +261,7 @@ export const confirmPassword = [
         "Your request is expired. Please try again."
       );
       error.status = 403;
-      error.errorCode = "Error_Expired";
+      error.errorCode = errorCodes.requestExpired;
       throw error;
     }
 
@@ -334,7 +335,7 @@ export const login = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.errorCode = "Error_invalid";
+      error.errorCode = errorCodes.invalid;
       return next(error);
     }
 
@@ -352,7 +353,7 @@ export const login = [
         "Your account is freezed. Please contact to support center."
       );
       error.status = 403;
-      error.errorCode = "Error_Forbidden";
+      error.errorCode = errorCodes.accountFreeze;
       throw error;
     }
 
@@ -379,7 +380,7 @@ export const login = [
             "Your account is freezed. Please contact to support center."
           );
           error.status = 403;
-          error.errorCode = "Error_Forbidden";
+          error.errorCode = errorCodes.accountFreeze;
           throw error;
         } else {
           const userData = {
@@ -391,7 +392,7 @@ export const login = [
 
           const error: any = new Error("Password is incorrect.");
           error.status = 401;
-          error.errorCode = "Error_Unauthenticated";
+          error.errorCode = errorCodes.unauthenticated;
           throw error;
         }
       }
@@ -452,7 +453,7 @@ export const logout = async (
   if (!refreshToken) {
     const error: any = new Error("You are not an authenticated user.");
     error.status = 401;
-    error.errorCode = "Error_Unauthenticated";
+    error.errorCode = errorCodes.unauthenticated;
     return next(error);
   }
 
@@ -465,7 +466,7 @@ export const logout = async (
   } catch (error: any) {
     error.message = "Invalid Refresh Token.";
     error.status = 401;
-    error.errorCode = "Error_InvalidRefreshToken";
+    error.errorCode = errorCodes.invalid;
     return next(error);
   }
 
@@ -475,7 +476,7 @@ export const logout = async (
   if (user?.phone !== decoded.phone) {
     const error: any = new Error("You are not an authenticated user.");
     error.status = 401;
-    error.errorCode = "Error_Unauthenticated";
+    error.errorCode = errorCodes.unauthenticated;
     return next(error);
   }
 
