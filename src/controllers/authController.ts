@@ -390,7 +390,7 @@ export const login = [
           };
           await updateUser(user!.id, userData);
 
-          const error: any = new Error("Password is incorrect.");
+          const error: any = new Error(req.t("wrongPassword"));
           error.status = 401;
           error.errorCode = errorCodes.unauthenticated;
           throw error;

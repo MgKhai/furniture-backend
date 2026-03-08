@@ -36,6 +36,12 @@ export const auth: any = (
       err.errorCode = errorCodes.unauthenticated;
     }
 
+    if (isNaN(decoded!.id)) {
+      const err: any = new Error("You are not an unauthenticated user.");
+      err.status = 401;
+      err.errorCode = errorCodes.unauthenticated;
+    }
+
     const user = await getUserById(decoded!.id);
     await checkUserIfNotExist(user);
 
@@ -104,6 +110,12 @@ export const auth: any = (
       decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET!) as {
         id: number;
       };
+
+      if (isNaN(decoded!.id)) {
+        const err: any = new Error("You are not an unauthenticated user.");
+        err.status = 401;
+        err.errorCode = errorCodes.unauthenticated;
+      }
 
       req.userId = decoded.id;
       next();

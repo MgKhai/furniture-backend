@@ -1,3 +1,4 @@
+import { i18n } from "./../node_modules/i18next/index.d";
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
@@ -8,7 +9,12 @@ import cookieParser from "cookie-parser";
 import { Request, Response, NextFunction } from "express";
 import authRoutes from "./routes/v1/auth/auth";
 import userRoutes from "./routes/v1/admin/user";
+import profieRoutes from "./routes/v1/user";
 import { auth } from "./middleware/auth";
+import i18next from "i18next";
+import Backend from "i18next-fs-backend";
+import middleware from "i18next-http-middleware";
+import path from "path";
 
 export const app = express();
 
@@ -41,8 +47,26 @@ app
   .use(compression())
   .use(limiter);
 
+i18next
+  .use(Backend)
+  .use(middleware.LanguageDetector)
+  .init({
+    backend: {
+      loadPath: path.join(process.cwd(), "src/locales/{{lng}}/{{ns}}.json"), // Adjust the path to your translation files
+    },
+    detection: {
+      order: ["querystring", "cookie", "header"], // Order of language detection
+      cache: ["cookie"], // Cache the detected language in a cookie
+    },
+    fallbackLng: "en", // Fallback language if the detected language is not available
+    preload: ["en", "mm"], // Preload languages (optional, can be used to load languages at startup)
+  });
+
+app.use(middleware.handle(i18next));
+
 app.use("/api/v1", authRoutes);
 app.use("/api/v1/admin", auth, userRoutes);
+app.use("/api/v1", profieRoutes);
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   const status = error.status || 500;
   const message = error.message || "Something went wrong";

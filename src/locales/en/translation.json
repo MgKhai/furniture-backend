@@ -1,0 +1,5 @@
+{
+    "welcome": "Welcome to our application!",
+    "wrongPassword": "Password is wrong",
+    "languageChanged": "Language has been changed to English - {{language}}"
+}
