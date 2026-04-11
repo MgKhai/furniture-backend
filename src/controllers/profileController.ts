@@ -1,9 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import { body, query, validationResult } from "express-validator";
+import { body, check, query, validationResult } from "express-validator";
 import { errorCodes } from "../config/errorCodes";
+import { get } from "http";
+import { getUserById } from "../services/authService";
+import { authorise } from "../utils/authorise";
+import { checkUserIfNotExist } from "../utils/auth";
 
 interface CustomRequest extends Request {
   userId: number;
+  user: any;
 }
 
 export const changeLanguage: any = [
@@ -36,3 +41,25 @@ export const changeLanguage: any = [
       .json({ message: req.t("languageChanged", { language: lng }) });
   },
 ];
+
+export const testPermission: any = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const user = await getUserById(userId);
+  checkUserIfNotExist(user);
+
+  const info: any = {
+    title: "Permission Test",
+  };
+
+  const can = authorise(true, user!.role, "USER");
+
+  if (can) {
+    info.message = "You are a user.";
+  }
+
+  res.status(200).json({ info });
+};
