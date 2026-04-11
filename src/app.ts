@@ -15,6 +15,7 @@ import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import middleware from "i18next-http-middleware";
 import path from "path";
+import { authorise } from "./middleware/authorise";
 
 export const app = express();
 
@@ -65,7 +66,7 @@ i18next
 app.use(middleware.handle(i18next));
 
 app.use("/api/v1", authRoutes);
-app.use("/api/v1/admin", auth, userRoutes);
+app.use("/api/v1/admin", auth, authorise(true, "USER"), userRoutes);
 app.use("/api/v1", profieRoutes);
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   const status = error.status || 500;
