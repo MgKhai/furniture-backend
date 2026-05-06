@@ -1,11 +1,15 @@
+import { upload } from "./../middleware/uploadFile";
 import { Request, Response, NextFunction } from "express";
 import { body, check, query, validationResult } from "express-validator";
 import { errorCodes } from "../config/errorCodes";
 import { get } from "http";
 import { createError } from "../utils/error";
-import { getUserById } from "../services/authService";
+import { getUserById, updateUser } from "../services/authService";
 import { authorise } from "../utils/authorise";
 import { checkUserIfNotExist } from "../utils/auth";
+import { error } from "console";
+import { unlink } from "node:fs/promises";
+import path from "path";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -57,4 +61,47 @@ export const testPermission: any = async (
   }
 
   res.status(200).json({ info });
+};
+
+export const uploadFile: any = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const image = req.file;
+
+  const user = await getUserById(userId);
+  await checkUserIfNotExist(user);
+  if (!image) {
+    const error: any = new Error("File upload failed");
+    error.status = 409;
+    error.errorCode = errorCodes.invalid;
+    throw error;
+  }
+
+  if (user!.image) {
+    try {
+      const oldImagePath = path.join(
+        __dirname,
+        "../uploads/images",
+        user!.image
+      );
+      await unlink(oldImagePath!);
+    } catch (error) {
+      console.error("Error deleting old profile image");
+    }
+  }
+
+  const profileImage = image.filename;
+
+  const userData = {
+    image: profileImage,
+  };
+
+  await updateUser(userId, userData);
+
+  res
+    .status(200)
+    .json({ message: "File uploaded successfully", image: profileImage });
 };
