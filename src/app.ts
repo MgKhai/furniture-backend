@@ -10,7 +10,7 @@ import { Request, Response, NextFunction } from "express";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import middleware from "i18next-http-middleware";
-import cron from "node-cron";
+// import cron from "node-cron";
 import path from "path";
 import routes from "./routes/v1";
 import {
@@ -80,16 +80,16 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-cron.schedule("* * * * *", async () => {
-  console.log("running a task every minute");
-  const setting = await getSettingStatus("maintenance");
-  console.log(setting!.value);
-  if (setting!.value === "true") {
-    await createOrUpdateSettingStatus("maintenance", "false");
-    const newSetting = await getSettingStatus("maintenance");
-    console.log(newSetting!.value);
-    console.log("Maintenance mode turned off");
-  } else {
-    console.log("Maintenance mode is already off");
-  }
-});
+// cron.schedule("* * * * *", async () => {
+//   console.log("running a task every minute");
+//   const setting = await getSettingStatus("maintenance");
+//   console.log(setting!.value);
+//   if (setting!.value === "true") {
+//     await createOrUpdateSettingStatus("maintenance", "false");
+//     const newSetting = await getSettingStatus("maintenance");
+//     console.log(newSetting!.value);
+//     console.log("Maintenance mode turned off");
+//   } else {
+//     console.log("Maintenance mode is already off");
+//   }
+// });
