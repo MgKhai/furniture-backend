@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { permission } from "process";
 import { getUserById } from "../services/authService";
 import { errorCodes } from "../config/errorCodes";
+import { createError } from "../utils/error";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -14,24 +14,33 @@ export const authorise: any = (permissions: boolean, ...roles: string[]) => {
     const user = await getUserById(userId);
 
     if (!user) {
-      const error: any = new Error("You are not an authenticated user.");
-      error.status = 401;
-      error.errorCode = errorCodes.unauthenticated;
-      return next(error);
+      return next(
+        createError(
+          "You are not an authenticated user.",
+          401,
+          errorCodes.unauthenticated
+        )
+      );
     }
 
     if (permissions && !roles.includes(user.role)) {
-      const error: any = new Error("You are not an authorised user.");
-      error.status = 403;
-      error.errorCode = errorCodes.unauthorised;
-      return next(error);
+      return next(
+        createError(
+          "You are not an authenticated user.",
+          403,
+          errorCodes.unauthenticated
+        )
+      );
     }
 
     if (!permissions && roles.includes(user.role)) {
-      const error: any = new Error("You are not an authorised user.");
-      error.status = 403;
-      error.errorCode = errorCodes.unauthorised;
-      return next(error);
+      return next(
+        createError(
+          "You are not an authenticated user.",
+          403,
+          errorCodes.unauthenticated
+        )
+      );
     }
 
     req.user = user;

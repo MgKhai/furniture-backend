@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { body, check, query, validationResult } from "express-validator";
 import { errorCodes } from "../config/errorCodes";
 import { get } from "http";
+import { createError } from "../utils/error";
 import { getUserById } from "../services/authService";
 import { authorise } from "../utils/authorise";
 import { checkUserIfNotExist } from "../utils/auth";
@@ -20,19 +21,13 @@ export const changeLanguage: any = [
   async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = new Error(errors[0]?.msg);
-      error.status = 400;
-      error.errorCode = errorCodes.invalid;
-      return next(error);
+      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
     }
 
     const { lng } = req.query;
 
     if (lng !== "en" && lng !== "mm") {
-      const error: any = new Error("Unsupported language");
-      error.status = 400;
-      error.errorCode = errorCodes.invalid;
-      return next(error);
+      return next(createError("Unsupported language", 400, errorCodes.invalid));
     }
 
     res.cookie("i18next", lng);

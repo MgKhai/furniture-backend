@@ -7,15 +7,16 @@ import compression from "compression";
 import { limiter } from "./middleware/rateLimiter";
 import cookieParser from "cookie-parser";
 import { Request, Response, NextFunction } from "express";
-import authRoutes from "./routes/v1/auth/auth";
-import userRoutes from "./routes/v1/admin/user";
-import profieRoutes from "./routes/v1/user";
-import { auth } from "./middleware/auth";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import middleware from "i18next-http-middleware";
+import cron from "node-cron";
 import path from "path";
-import { authorise } from "./middleware/authorise";
+import routes from "./routes/v1";
+import {
+  createOrUpdateSettingStatus,
+  getSettingStatus,
+} from "./services/settingService";
 
 export const app = express();
 
@@ -64,10 +65,11 @@ i18next
   });
 
 app.use(middleware.handle(i18next));
+app.use(routes);
 
-app.use("/api/v1", authRoutes);
-app.use("/api/v1/admin", auth, authorise(true, "USER"), userRoutes);
-app.use("/api/v1", profieRoutes);
+// app.use("/api/v1", authRoutes);
+// app.use("/api/v1/admin", auth, authorise(true, "USER"), userRoutes);
+// app.use("/api/v1", profieRoutes);
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   const status = error.status || 500;
   const message = error.message || "Something went wrong";
@@ -76,4 +78,18 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     message,
     error: errorCode,
   });
+});
+
+cron.schedule("* * * * *", async () => {
+  console.log("running a task every minute");
+  const setting = await getSettingStatus("maintenance");
+  console.log(setting!.value);
+  if (setting!.value === "true") {
+    await createOrUpdateSettingStatus("maintenance", "false");
+    const newSetting = await getSettingStatus("maintenance");
+    console.log(newSetting!.value);
+    console.log("Maintenance mode turned off");
+  } else {
+    console.log("Maintenance mode is already off");
+  }
 });
