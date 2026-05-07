@@ -2,12 +2,11 @@ import { upload } from "./../middleware/uploadFile";
 import { Request, Response, NextFunction } from "express";
 import { body, check, query, validationResult } from "express-validator";
 import { errorCodes } from "../config/errorCodes";
-import { get } from "http";
 import { createError } from "../utils/error";
 import { getUserById, updateUser } from "../services/authService";
 import { authorise } from "../utils/authorise";
 import { checkUserIfNotExist } from "../utils/auth";
-import { error } from "console";
+import sharp from "sharp";
 import { unlink } from "node:fs/promises";
 import path from "path";
 
@@ -104,4 +103,83 @@ export const uploadFile: any = async (
   res
     .status(200)
     .json({ message: "File uploaded successfully", image: profileImage });
+};
+
+export const uploadFileMultiple: any = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  // const userId = req.userId;
+  // const images = req.files;
+
+  console.log("Uploaded files:", req.files);
+  res.status(200).json({ message: "Multiple pictures uploaded successfully." });
+};
+
+export const uploadFileOptimize: any = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const image = req.file;
+  const user = await getUserById(userId);
+
+  checkUserIfNotExist(user);
+  if (!image) {
+    const error: any = new Error("File upload failed");
+    error.status = 409;
+    error.errorCode = errorCodes.invalid;
+    throw error;
+  }
+
+  // old image delete
+  if (user!.image) {
+    try {
+      const oldImagePath = path.join(
+        __dirname,
+        "../uploads/images",
+        user!.image
+      );
+
+      await unlink(oldImagePath!);
+    } catch (error) {
+      console.error("Error deleting old profile image");
+    }
+  }
+
+  const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+  const optimizedFileName =
+    uniqueSuffix + "-" + `${image.originalname.split(".")[0]}.webp`;
+  const optimizedFilePath = path.join(
+    __dirname,
+    "../uploads/images",
+    optimizedFileName
+  );
+
+  try {
+    await sharp(image.buffer)
+      .resize(200)
+      .webp({ quality: 50 })
+      .toFile(optimizedFilePath);
+  } catch (error) {
+    console.error("Error optimizing image:", error);
+    return next(
+      createError("Image optimization failed", 500, errorCodes.invalid)
+    );
+  }
+
+  const userData = {
+    image: optimizedFileName,
+  };
+
+  await updateUser(userId, userData);
+
+  res
+    .status(200)
+    .json({
+      message: "Optimized file uploaded successfully.",
+      image: optimizedFileName,
+    });
 };
