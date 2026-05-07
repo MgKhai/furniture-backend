@@ -31,3 +31,13 @@ export const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5 MB
   },
 });
+
+const memoryStorage = multer.memoryStorage();
+
+export const uploadMemory = multer({
+  storage: memoryStorage,
+  fileFilter,
+  limits: {
+    fileSize: 1024 * 1024 * 10, // 10 MB
+  },
+});
