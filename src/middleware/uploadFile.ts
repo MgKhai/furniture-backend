@@ -7,8 +7,13 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, "../uploads/images"));
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
+    const uniqueSuffix =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      "." +
+      file.mimetype.split("/")[1];
+    cb(null, uniqueSuffix);
   },
 });
 
@@ -28,7 +33,7 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5 MB
+    fileSize: 10 * 1024 * 1024, // 10 MB
   },
 });
 
