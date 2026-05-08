@@ -9,6 +9,7 @@ import { checkUserIfNotExist } from "../utils/auth";
 import sharp from "sharp";
 import { unlink } from "node:fs/promises";
 import path from "path";
+import imageQueue from "../jobs/queues/imagQueue";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -134,6 +135,23 @@ export const uploadFileOptimize: any = async (
     throw error;
   }
 
+  const splitFileName = image.filename.split(".")[0];
+
+  const job = await imageQueue.add(
+    "optimizeImage",
+    {
+      filePath: image.path,
+      fileName: `${splitFileName}.webp`,
+    },
+    {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 1000, // 1 seconds
+      },
+    }
+  );
+
   // old image delete
   if (user!.image) {
     try {
@@ -143,43 +161,48 @@ export const uploadFileOptimize: any = async (
         user!.image
       );
 
+      const oldOptimizeImagePath = path.join(
+        __dirname,
+        "../uploads/optimize",
+        `${user!.image.split(".")[0]}.webp`
+      );
+
       await unlink(oldImagePath!);
+      await unlink(oldOptimizeImagePath!);
     } catch (error) {
       console.error("Error deleting old profile image");
     }
   }
 
-  const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-  const optimizedFileName =
-    uniqueSuffix + "-" + `${image.originalname.split(".")[0]}.webp`;
-  const optimizedFilePath = path.join(
-    __dirname,
-    "../uploads/images",
-    optimizedFileName
-  );
+  // const optimizedFileName =
+  //   uniqueSuffix + "-" + `${image.originalname.split(".")[0]}.webp`;
+  // const optimizedFilePath = path.join(
+  //   __dirname,
+  //   "../uploads/images",
+  //   optimizedFileName
+  // );
 
-  try {
-    await sharp(image.buffer)
-      .resize(200)
-      .webp({ quality: 50 })
-      .toFile(optimizedFilePath);
-  } catch (error) {
-    console.error("Error optimizing image:", error);
-    return next(
-      createError("Image optimization failed", 500, errorCodes.invalid)
-    );
-  }
+  // try {
+  //   await sharp(image.buffer)
+  //     .resize(200)
+  //     .webp({ quality: 50 })
+  //     .toFile(optimizedFilePath);
+  // } catch (error) {
+  //   console.error("Error optimizing image:", error);
+  //   return next(
+  //     createError("Image optimization failed", 500, errorCodes.invalid)
+  //   );
+  // }
 
   const userData = {
-    image: optimizedFileName,
+    image: image.filename,
   };
 
   await updateUser(userId, userData);
 
-  res
-    .status(200)
-    .json({
-      message: "Optimized file uploaded successfully.",
-      image: optimizedFileName,
-    });
+  res.status(200).json({
+    message: "Optimized file uploaded successfully.",
+    image: splitFileName + ".webp",
+    jobId: job.id,
+  });
 };
