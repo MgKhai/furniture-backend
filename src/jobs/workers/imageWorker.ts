@@ -12,7 +12,7 @@ const connection = {
 const imageWorker = new Worker(
   "imageQueue",
   async (job) => {
-    const { filePath, fileName } = job.data;
+    const { filePath, fileName, width, height, quality } = job.data;
 
     const optimizedFilePath = path.join(
       __dirname,
@@ -21,8 +21,8 @@ const imageWorker = new Worker(
     );
 
     await sharp(filePath)
-      .resize(200)
-      .webp({ quality: 50 })
+      .resize(width, height)
+      .webp({ quality: quality })
       .toFile(optimizedFilePath);
   },
   { connection }
