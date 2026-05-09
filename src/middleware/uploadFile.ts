@@ -11,8 +11,9 @@ const storage = multer.diskStorage({
       Date.now() +
       "-" +
       Math.round(Math.random() * 1e9) +
-      "." +
-      file.mimetype.split("/")[1];
+      "-" +
+      file.originalname.split(".")[0] +
+      ".png";
     cb(null, uniqueSuffix);
   },
 });

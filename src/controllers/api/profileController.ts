@@ -1,15 +1,15 @@
-import { upload } from "./../middleware/uploadFile";
+import { upload } from "../../middleware/uploadFile";
 import { Request, Response, NextFunction } from "express";
 import { body, check, query, validationResult } from "express-validator";
-import { errorCodes } from "../config/errorCodes";
-import { createError } from "../utils/error";
-import { getUserById, updateUser } from "../services/authService";
-import { authorise } from "../utils/authorise";
-import { checkUserIfNotExist } from "../utils/auth";
+import { errorCodes } from "../../config/errorCodes";
+import { createError } from "../../utils/error";
+import { getUserById, updateUser } from "../../services/authService";
+import { authorise } from "../../utils/authorise";
+import { checkUserIfNotExist } from "../../utils/auth";
 import sharp from "sharp";
 import { unlink } from "node:fs/promises";
 import path from "path";
-import imageQueue from "../jobs/queues/imagQueue";
+import imageQueue from "../../jobs/queues/imagQueue";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -142,6 +142,9 @@ export const uploadFileOptimize: any = async (
     {
       filePath: image.path,
       fileName: `${splitFileName}.webp`,
+      width: 200,
+      height: 200,
+      quality: 50,
     },
     {
       attempts: 3,
