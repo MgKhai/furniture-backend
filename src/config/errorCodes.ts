@@ -13,4 +13,5 @@ export const errorCodes = {
   badRequest: "Error_BadRequest",
   unauthorised: "Error_Unauthorised",
   maintenance: "Error_Maintenance",
+  notFound: "Error_NotFound",
 };
