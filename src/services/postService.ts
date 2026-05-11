@@ -1,3 +1,4 @@
+import { getPost } from "./../controllers/api/postController";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -58,6 +59,66 @@ export const createNewPost = async (postData: PostArgs) => {
     };
   }
   return prisma.post.create({
+    data,
+  });
+};
+
+export const getPostById = async (id: number) => {
+  return prisma.post.findUnique({
+    where: {
+      id,
+    },
+  });
+};
+
+export const updatePostById = async (postId: number, postData: PostArgs) => {
+  let data: any = {
+    title: postData.title,
+    content: postData.content,
+    body: postData.body,
+    category: {
+      connectOrCreate: {
+        where: {
+          name: postData.category,
+        },
+        create: {
+          name: postData.category,
+        },
+      },
+    },
+    type: {
+      connectOrCreate: {
+        where: {
+          name: postData.type,
+        },
+        create: {
+          name: postData.type,
+        },
+      },
+    },
+  };
+
+  if (postData.image) {
+    data.image = postData.image;
+  }
+
+  if (postData.tags && postData.tags.length > 0) {
+    data.tags = {
+      connectOrCreate: postData.tags.map((tag) => ({
+        where: {
+          name: tag,
+        },
+        create: {
+          name: tag,
+        },
+      })),
+    };
+  }
+
+  return prisma.post.update({
+    where: {
+      id: postId,
+    },
     data,
   });
 };
