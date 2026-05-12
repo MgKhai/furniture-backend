@@ -122,3 +122,11 @@ export const updatePostById = async (postId: number, postData: PostArgs) => {
     data,
   });
 };
+
+export const deletePostById = async (postId: number) => {
+  return prisma.post.delete({
+    where: {
+      id: postId,
+    },
+  });
+};
