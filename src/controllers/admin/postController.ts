@@ -12,6 +12,7 @@ import {
   getPostById,
   PostArgs,
   updatePostById,
+  deletePostById,
 } from "../../services/postService";
 import sanitizeHtml from "sanitize-html";
 import { unlink } from "fs/promises";
@@ -262,7 +263,53 @@ export const updatePost: any = [
 ];
 
 export const deletePost: any = [
+  body("postId", "Post ID is required.").trim().notEmpty().isInt({ min: 1 }),
   async (req: CustomRequest, res: Response, next: NextFunction) => {
-    res.status(200).json({ message: "Post deleted successfully" });
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+    }
+
+    const user = await getUserById(req.userId);
+    await checkUserIfNotExist(user);
+
+    const post: any = await getPostById(+req.body.postId);
+    if (!post) {
+      return next(createError("Post not found.", 404, errorCodes.notFound));
+    }
+
+    if (user!.id !== post!.authorId) {
+      return next(
+        createError(
+          "You are not authorized to delete this post.",
+          403,
+          errorCodes.unauthorised
+        )
+      );
+    }
+
+    if (post.image) {
+      try {
+        const oldImagePath = path.join(
+          __dirname,
+          "../../uploads/images",
+          post!.image
+        );
+
+        const oldOptimizeImagePath = path.join(
+          __dirname,
+          "../../uploads/optimize",
+          `${post!.image.split(".")[0]}.webp`
+        );
+
+        await unlink(oldImagePath!);
+        await unlink(oldOptimizeImagePath!);
+      } catch (error) {
+        console.error("Error deleting old image");
+      }
+
+      await deletePostById(+req.body.postId);
+      res.status(200).json({ message: "Post deleted successfully" });
+    }
   },
 ];
