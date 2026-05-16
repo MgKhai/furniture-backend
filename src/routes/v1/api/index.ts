@@ -10,7 +10,7 @@ import { auth } from "../../../middleware/auth";
 import { upload, uploadMemory } from "../../../middleware/uploadFile";
 import {
   getPost,
-  getPostsByPagination,
+  getPostsByOffset,
 } from "../../../controllers/api/postController";
 
 const router = express.Router();
@@ -32,6 +32,6 @@ router.patch(
 );
 
 // posts
-// router.get("/posts/:id", auth, getPost);
-// router.get("/posts", auth, getPostsByPagination);
+router.get("/posts/:id", auth, getPost);
+router.get("/posts", auth, getPostsByOffset);
 export default router;

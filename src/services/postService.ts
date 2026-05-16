@@ -1,7 +1,43 @@
 import { getPost } from "./../controllers/api/postController";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient().$extends({
+  result: {
+    user: {
+      fullName: {
+        needs: {
+          firstName: true,
+          lastName: true,
+        },
+        compute(user) {
+          return `${user.firstName} ${user.lastName}`;
+        },
+      },
+    },
+    post: {
+      image: {
+        needs: {
+          image: true,
+        },
+        compute(post) {
+          return "/optimize/" + post.image?.split(".")[0] + ".webp";
+        },
+      },
+      updatedAt: {
+        needs: {
+          updatedAt: true,
+        },
+        compute(post) {
+          return post.updatedAt.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+        },
+      },
+    },
+  },
+});
 
 export type PostArgs = {
   title: string;
@@ -129,4 +165,45 @@ export const deletePostById = async (postId: number) => {
       id: postId,
     },
   });
+};
+
+export const getPostWithRelations = async (id: number) => {
+  return prisma.post.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      body: true,
+      image: true,
+      author: {
+        select: {
+          fullName: true,
+        },
+      },
+      category: {
+        select: {
+          name: true,
+        },
+      },
+      type: {
+        select: {
+          name: true,
+        },
+      },
+      tags: {
+        select: {
+          name: true,
+        },
+      },
+      updatedAt: true,
+    },
+  });
+};
+
+// offset pagination
+export const getPostListsByOffset = async (options: any) => {
+  return prisma.post.findMany(options);
 };
