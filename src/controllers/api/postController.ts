@@ -113,15 +113,12 @@ export const getPostsByOffset: any = [
 ];
 
 export const getPostsByCursor: any = [
-  query("cursor", "Page number must be unsigned integer.")
-    .isInt({ gt: 0 })
-    .optional(),
-  query("limits", "Limits must be unsigned integer.")
-    .isInt({ gt: 4 })
-    .optional(),
+  query("cursor", "Cursor number must be unsigned integer."),
+  query("limits", "Limits must be unsigned integer."),
   async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
+      console.log("error");
       return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
     }
 
