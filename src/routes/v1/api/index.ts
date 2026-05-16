@@ -33,7 +33,8 @@ router.patch(
 );
 
 // posts
+router.get("/posts/infinite", auth, getPostsByCursor);
 router.get("/posts/:id", auth, getPost);
 router.get("/posts", auth, getPostsByOffset);
-router.get("/posts/infinite", auth, getPostsByCursor);
+
 export default router;
