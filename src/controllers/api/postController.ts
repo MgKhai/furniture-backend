@@ -4,7 +4,7 @@ import { createError } from "../../utils/error";
 import { errorCodes } from "../../config/errorCodes";
 import { checkUserIfNotExist } from "../../utils/auth";
 import {
-  getPostListsByOffset,
+  getPostListsByPagination,
   getPostWithRelations,
 } from "../../services/postService";
 import { title } from "process";
@@ -90,7 +90,7 @@ export const getPostsByOffset: any = [
       },
     };
 
-    const posts = await getPostListsByOffset(options);
+    const posts = await getPostListsByPagination(options);
 
     const hasNextPage = posts.length > +limits;
     let nextPage = null;
@@ -108,6 +108,65 @@ export const getPostsByOffset: any = [
       previousPage,
       currentPage: page,
       nextPage,
+    });
+  },
+];
+
+export const getPostsByCursor: any = [
+  query("cursor", "Page number must be unsigned integer.")
+    .isInt({ gt: 0 })
+    .optional(),
+  query("limits", "Limits must be unsigned integer.")
+    .isInt({ gt: 4 })
+    .optional(),
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+    }
+
+    const lastCursor = +req.query.cursor!;
+    const limits = +req.query.limits! || 5;
+
+    const userId = req.userId;
+    await checkUserIfNotExist(userId);
+
+    const options = {
+      take: limits + 1,
+      skip: lastCursor ? 1 : 0,
+      cursor: lastCursor ? { id: lastCursor } : undefined,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        body: true,
+        image: true,
+        author: {
+          select: {
+            fullName: true,
+          },
+        },
+        updatedAt: true,
+      },
+      orderBy: {
+        id: "asc",
+      },
+    };
+
+    const posts = await getPostListsByPagination(options);
+
+    const hasNextPage = posts.length > +limits;
+    if (hasNextPage) {
+      posts.pop();
+    }
+
+    const newCursor = posts.length > 0 ? posts[posts.length - 1]!.id : null;
+
+    res.status(200).json({
+      message: "Posts retrieved successfully.",
+      posts,
+      hasNextPage,
+      newCursor,
     });
   },
 ];

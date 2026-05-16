@@ -11,6 +11,7 @@ import { upload, uploadMemory } from "../../../middleware/uploadFile";
 import {
   getPost,
   getPostsByOffset,
+  getPostsByCursor,
 } from "../../../controllers/api/postController";
 
 const router = express.Router();
@@ -34,4 +35,5 @@ router.patch(
 // posts
 router.get("/posts/:id", auth, getPost);
 router.get("/posts", auth, getPostsByOffset);
+router.get("/posts/infinite", auth, getPostsByCursor);
 export default router;
