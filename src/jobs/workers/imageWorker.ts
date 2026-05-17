@@ -1,13 +1,7 @@
 import { Worker } from "bullmq";
 import sharp from "sharp";
 import path from "path";
-
-const connection = {
-  host: process.env.REDIS_HOST || "127.0.0.1",
-  port: Number(process.env.REDIS_PORT || "6379"),
-  // password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-};
+import { redis } from "../../config/redisClient";
 
 const imageWorker = new Worker(
   "imageQueue",
@@ -25,7 +19,7 @@ const imageWorker = new Worker(
       .webp({ quality: quality })
       .toFile(optimizedFilePath);
   },
-  { connection }
+  { connection: redis }
 );
 
 imageWorker.on("completed", (job) => {
