@@ -7,6 +7,7 @@ import { getUserById } from "../../services/authService";
 import { checkUserIfNotExist } from "../../utils/auth";
 import { checkUploadFile } from "../../utils/upload";
 import imageQueue from "../../jobs/queues/imagQueue";
+import cacheQueue from "../../jobs/queues/cacheQueue";
 import {
   createNewPost,
   getPostById,
@@ -17,7 +18,7 @@ import {
 import sanitizeHtml from "sanitize-html";
 import { unlink } from "fs/promises";
 import path from "path";
-import { upload } from "../../middleware/uploadFile";
+
 interface CustomRequest extends Request {
   userId: number;
 }
@@ -114,6 +115,16 @@ export const createPost: any = [
     };
 
     const newPost = await createNewPost(data);
+    await cacheQueue.add(
+      "invalidateCache",
+      {
+        pattern: "posts:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
 
     res
       .status(200)
@@ -256,6 +267,17 @@ export const updatePost: any = [
 
     const updatedPost = await updatePostById(+postId, data);
 
+    await cacheQueue.add(
+      "invalidateCache",
+      {
+        pattern: "posts:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
+
     res
       .status(200)
       .json({ message: "Post updated successfully", post: updatedPost });
@@ -309,6 +331,18 @@ export const deletePost: any = [
       }
 
       await deletePostById(+req.body.postId);
+
+      await cacheQueue.add(
+        "invalidateCache",
+        {
+          pattern: "posts:*",
+        },
+        {
+          jobId: `invalidate-${Date.now()}`,
+          priority: 1,
+        }
+      );
+
       res.status(200).json({ message: "Post deleted successfully" });
     }
   },
