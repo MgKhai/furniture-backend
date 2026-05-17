@@ -7,7 +7,7 @@ import {
   getPostListsByPagination,
   getPostWithRelations,
 } from "../../services/postService";
-import { title } from "process";
+import { getOrSetCache } from "../../utils/cache";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -26,7 +26,11 @@ export const getPost: any = [
 
     const postId = req.params.id;
 
-    const post = await getPostWithRelations(+postId!);
+    // const post = await getPostWithRelations(+postId!);
+    const cacheData = `post:id:${postId}`;
+    const post = await getOrSetCache(cacheData, async () => {
+      return await getPostWithRelations(+postId!);
+    });
 
     const modifiedPost = {
       id: post!.id,
@@ -37,7 +41,7 @@ export const getPost: any = [
       author: post!.author!.fullName,
       category: post!.category!.name,
       type: post!.type!.name,
-      tags: post!.tags?.map((tag) => tag.name) || [],
+      tags: post!.tags?.map((tag: any) => tag.name) || [],
       updatedAt: post!.updatedAt,
     };
 
@@ -90,7 +94,11 @@ export const getPostsByOffset: any = [
       },
     };
 
-    const posts = await getPostListsByPagination(options);
+    // const posts = await getPostListsByPagination(options);
+    const cacheKey = `posts:offset:page:${page}:limits:${limits}`;
+    const posts = await getOrSetCache(cacheKey, async () => {
+      return await getPostListsByPagination(options);
+    });
 
     const hasNextPage = posts.length > +limits;
     let nextPage = null;
@@ -150,7 +158,11 @@ export const getPostsByCursor: any = [
       },
     };
 
-    const posts = await getPostListsByPagination(options);
+    // const posts = await getPostListsByPagination(options);
+    const cacheKey = `posts:cursor:${lastCursor}:limits:${limits}`;
+    const posts = await getOrSetCache(cacheKey, async () => {
+      return await getPostListsByPagination(options);
+    });
 
     const hasNextPage = posts.length > +limits;
     if (hasNextPage) {
