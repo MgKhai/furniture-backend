@@ -132,9 +132,7 @@ export const createProduct: any = [
       })
     );
 
-    const originalFileNames = req.files.map((file: any) => {
-      ({ path: file.filename });
-    });
+    const originalFileNames = req.files.map((file: any) => file.filename);
     const productData = {
       name,
       description,
@@ -160,12 +158,10 @@ export const createProduct: any = [
       }
     );
 
-    res
-      .status(200)
-      .json({
-        message: "Product created successfully",
-        productId: newProduct.id,
-      });
+    res.status(200).json({
+      message: "Product created successfully",
+      productId: newProduct.id,
+    });
   },
 ];
 export const updateProduct: any = [

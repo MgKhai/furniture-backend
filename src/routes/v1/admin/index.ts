@@ -24,7 +24,7 @@ router.patch("/posts", upload.single("image"), updatePost);
 router.delete("/posts", deletePost);
 
 // CRUD products
-router.post("/products", upload.array("image", 4), createProduct);
+router.post("/products", upload.array("images", 4), createProduct);
 // router.patch("/products", upload.array("image", 4), updateProduct);
 // router.delete("/products", deleteProduct);
 // router.post("/products", createNewProduct);

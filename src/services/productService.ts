@@ -10,6 +10,7 @@ export const createNewProduct = async (data: any) => {
     price: data.price,
     discount: data.discount,
     inventory: data.inventory,
+
     category: {
       connectOrCreate: {
         where: {
@@ -20,6 +21,7 @@ export const createNewProduct = async (data: any) => {
         },
       },
     },
+
     type: {
       connectOrCreate: {
         where: {
@@ -30,16 +32,17 @@ export const createNewProduct = async (data: any) => {
         },
       },
     },
+
     images: {
-      create: {
-        data: data.images,
-      },
+      create: data.images.map((image: string) => ({
+        path: image,
+      })),
     },
   };
 
   if (data.tags && data.tags.length > 0) {
     productData.tags = {
-      connectOrCreate: data.tags.map((tag: any) => ({
+      connectOrCreate: data.tags.map((tag: string) => ({
         where: {
           name: tag,
         },
@@ -51,6 +54,6 @@ export const createNewProduct = async (data: any) => {
   }
 
   return prisma.product.create({
-    data,
+    data: productData,
   });
 };
