@@ -127,7 +127,7 @@ export const createPost: any = [
     );
 
     res
-      .status(200)
+      .status(201)
       .json({ message: "Post created successfully", postId: newPost.id });
   },
 ];
