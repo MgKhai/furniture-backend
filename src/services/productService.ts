@@ -1,9 +1,4 @@
-import { disconnect } from "node:cluster";
-import { any } from "./../../node_modules/effect/src/Match";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
+import { prisma } from "../lib/prisma";
 // create product
 export const createNewProduct = async (data: any) => {
   const productData: any = {
