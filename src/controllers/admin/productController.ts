@@ -1,3 +1,4 @@
+import { product } from "./../../../node_modules/effect/src/Equivalence";
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
 import { createError } from "../../utils/error";
@@ -10,6 +11,7 @@ import imageQueue from "../../jobs/queues/imagQueue";
 import cacheQueue from "../../jobs/queues/cacheQueue";
 import {
   createNewProduct,
+  deleteProductById,
   getProductById,
   updateProductById,
 } from "../../services/productService";
@@ -57,7 +59,7 @@ const removeFiles = async (
       for (const optimizeFile of optimizeFiles) {
         const optimizeFilePath = path.join(
           __dirname,
-          "../../uploads/images",
+          "../../uploads/optimize",
           optimizeFile
         );
         await unlink(optimizeFilePath);
@@ -300,5 +302,45 @@ export const updateProduct: any = [
 ];
 
 export const deleteProduct: any = [
-  async (req: CustomRequest, res: Response, next: NextFunction) => {},
+  body("productId", "Product ID is required.")
+    .trim()
+    .notEmpty()
+    .isInt({ min: 1 }),
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+    }
+
+    const userId = req.userId;
+    await checkUserIfNotExist(userId);
+
+    const { productId } = req.body;
+    const product = await getProductById(+productId);
+    if (!product) {
+      return next(createError("Product not found", 404, errorCodes.notFound));
+    }
+
+    const originalFileNames = product.images.map((image: any) => image.path);
+    const optimizeFileNames = product.images.map(
+      (image: any) => image.path.split(".")[0] + ".webp"
+    );
+
+    await removeFiles(originalFileNames, optimizeFileNames);
+
+    await deleteProductById(+productId);
+
+    await cacheQueue.add(
+      "invalidateCache",
+      {
+        pattern: "products:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
+
+    res.status(200).json({ message: "Product deleted successfully" });
+  },
 ];
