@@ -70,7 +70,7 @@ export const updateProductById = async (
   // type,
   // tags,
   let data: any = {
-    name: productData.title,
+    name: productData.name,
     description: productData.description,
     price: productData.price,
     discount: productData.discount,
@@ -117,7 +117,7 @@ export const updateProductById = async (
     };
   }
 
-  return prisma.post.update({
+  return prisma.product.update({
     where: {
       id: productId,
     },
@@ -133,6 +133,15 @@ export const getProductById = async (id: number) => {
     },
     include: {
       images: true,
+    },
+  });
+};
+
+// delete product by id
+export const deleteProductById = async (id: number) => {
+  return prisma.product.delete({
+    where: {
+      id,
     },
   });
 };
