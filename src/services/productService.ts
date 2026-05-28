@@ -145,3 +145,40 @@ export const deleteProductById = async (id: number) => {
     },
   });
 };
+
+// get product with relations
+export const getProductWithRelations = async (id: number) => {
+  return prisma.product.findFirst({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      rating: true,
+      inventory: true,
+      category: {
+        select: {
+          name: true,
+        },
+      },
+      type: {
+        select: {
+          name: true,
+        },
+      },
+      tags: {
+        select: {
+          name: true,
+        },
+      },
+      images: {
+        select: {
+          path: true,
+        },
+      },
+    },
+  });
+};
