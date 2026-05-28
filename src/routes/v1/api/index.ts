@@ -13,6 +13,7 @@ import {
   getPostsByOffset,
   getPostsByCursor,
 } from "../../../controllers/api/postController";
+import { getProduct } from "../../../controllers/api/productController";
 
 const router = express.Router();
 
@@ -36,5 +37,8 @@ router.patch(
 router.get("/posts/infinite", auth, getPostsByCursor);
 router.get("/posts/:id", auth, getPost);
 router.get("/posts", auth, getPostsByOffset);
+
+//products
+router.get("/products/:id", auth, getProduct);
 
 export default router;
