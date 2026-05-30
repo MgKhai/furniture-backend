@@ -13,7 +13,10 @@ import {
   getPostsByOffset,
   getPostsByCursor,
 } from "../../../controllers/api/postController";
-import { getProduct } from "../../../controllers/api/productController";
+import {
+  getProduct,
+  getProductsByCursor,
+} from "../../../controllers/api/productController";
 
 const router = express.Router();
 
@@ -40,5 +43,6 @@ router.get("/posts", auth, getPostsByOffset);
 
 //products
 router.get("/products/:id", auth, getProduct);
+router.get("/products", auth, getProductsByCursor); // cursor-based pagination
 
 export default router;
