@@ -182,3 +182,7 @@ export const getProductWithRelations = async (id: number) => {
     },
   });
 };
+
+export const getProductListsByPagination: any = async (options: any) => {
+  return prisma.product.findMany(options);
+};
