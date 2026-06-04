@@ -35,8 +35,8 @@ var corsOptions = {
     } else {
       callback(new Error("Not allowed by CORS"));
     }
-    credentials: true; // Allow cookies or authentication headers
   },
+  credentials: true, // Allow cookies or authentication headers
 };
 
 app
