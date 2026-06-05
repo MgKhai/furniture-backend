@@ -468,10 +468,20 @@ export const logout = async (
   await updateUser(user!.id, userData);
 
   res
+    .clearCookie("accessToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    })
+    .clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    })
     .status(200)
-    .json({ message: "Successfully logged out." })
-    .clearCookie("accessToken")
-    .clearCookie("refreshToken");
+    .json({
+      message: "Successfully logged out.",
+    });
 };
 
 // forget password
