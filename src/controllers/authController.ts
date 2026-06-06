@@ -1,3 +1,4 @@
+import { auth } from "./../middleware/auth";
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction } from "express";
 import { body, validationResult } from "express-validator";
@@ -742,3 +743,25 @@ export const resetPassword = [
       });
   },
 ];
+
+interface CustomRequest extends Request {
+  userId: number;
+}
+
+export const authCheck = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const user = await getUserById(userId);
+  checkUserIfNotExist(user);
+
+  res.status(200).json({
+    message: "You are an authenticated user.",
+    userId: user!.id,
+    phone: user!.phone,
+    userName: user?.fullName,
+    image: user?.image,
+  });
+};
