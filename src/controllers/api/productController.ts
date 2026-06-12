@@ -59,96 +59,113 @@ export const getProduct: any = [
 
 // cursor-based pagination
 export const getProductsByCursor: any = [
-  query("cursor", "Cursor number must be unsigned integer.")
+  query("cursor")
+    .optional()
     .isInt({ gt: 0 })
-    .optional(),
-  query("limits", "Limits must be unsigned integer.")
+    .withMessage("Cursor number must be unsigned integer."),
+
+  query("limits")
+    .optional()
     .isInt({ gt: 0 })
-    .optional(),
+    .withMessage("Limits must be unsigned integer."),
+
   async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req).array({ onlyFirstError: true });
-    if (errors.length > 0) {
-      console.log("error");
-      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
-    }
+    try {
+      const errors = validationResult(req).array({
+        onlyFirstError: true,
+      });
 
-    const lastCursor = +req.query.cursor!;
-    const limits = +req.query.limits! || 5;
-    const category = req.query.category as string;
-    const type = req.query.type as string;
+      if (errors.length > 0) {
+        return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+      }
 
-    const userId = req.userId;
-    await checkUserIfNotExist(userId);
+      const lastCursor = Number(req.query.cursor) || 0;
+      const limits = Number(req.query.limits) || 5;
 
-    let categoryList: number[] = [];
-    let typeList: number[] = [];
+      const category = req.query.category as string;
+      const type = req.query.type as string;
 
-    if (category) {
-      categoryList = category
-        .toString()
-        .split(",")
-        .map((c) => Number(c))
-        .filter((c) => c > 0);
-    }
+      await checkUserIfNotExist(req.userId);
 
-    if (type) {
-      typeList = type
-        .toString()
-        .split(",")
-        .map((t) => Number(t))
-        .filter((t) => t > 0);
-    }
+      const categoryList =
+        category
+          ?.split(",")
+          .map(Number)
+          .filter((id) => id > 0) || [];
 
-    const where = {
-      OR: [
-        categoryList.length > 0 ? { categoryId: { in: categoryList } } : {},
-        typeList.length > 0 ? { typeId: { in: typeList } } : {},
-      ],
-    };
+      const typeList =
+        type
+          ?.split(",")
+          .map(Number)
+          .filter((id) => id > 0) || [];
 
-    const options = {
-      where,
-      take: +limits + 1,
-      skip: lastCursor ? 1 : 0, // skip the last cursor if it exists
-      cursor: lastCursor ? { id: +lastCursor } : undefined,
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        discount: true,
-        status: true,
-        images: {
-          select: {
-            id: true,
-            path: true,
+      const where: any = {};
+
+      if (categoryList.length > 0) {
+        where.categoryId = {
+          in: categoryList,
+        };
+      }
+
+      if (typeList.length > 0) {
+        where.typeId = {
+          in: typeList,
+        };
+      }
+
+      const options = {
+        where,
+
+        take: limits + 1,
+
+        skip: lastCursor ? 1 : 0,
+
+        cursor: lastCursor ? { id: lastCursor } : undefined,
+
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          discount: true,
+          status: true,
+
+          images: {
+            take: 1,
+            select: {
+              id: true,
+              path: true,
+            },
           },
-          take: 1, // limit to the first image
         },
-      },
-      orderBy: {
-        id: "desc",
-      },
-    };
 
-    const cacheKey = `products:${JSON.stringify(req.query)}`;
+        orderBy: {
+          id: "desc",
+        },
+      };
 
-    const products = await getOrSetCache(cacheKey, async () => {
-      return await getProductListsByPagination(options);
-    });
+      const cacheKey = `products:cursor:${lastCursor}:limits:${limits}`;
+      const products = await getOrSetCache(cacheKey, async () => {
+        return await getProductListsByPagination(options);
+      });
 
-    const hasNextPage = products.length > +limits;
-    if (hasNextPage) {
-      products.pop();
+      const hasNextPage = products.length > limits;
+
+      if (hasNextPage) {
+        products.pop();
+      }
+
+      const nextCursor =
+        products.length > 0 ? products[products.length - 1].id : null;
+
+      return res.status(200).json({
+        message: "Products retrieved successfully.",
+        products,
+        hasNextPage,
+        nextCursor,
+        prevCursor: lastCursor,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const newCursor =
-      products.length > 0 ? products[products.length - 1]!.id : null;
-
-    res.status(200).json({
-      message: "Products retrieved successfully.",
-      products,
-      hasNextPage,
-      newCursor,
-    });
   },
 ];
