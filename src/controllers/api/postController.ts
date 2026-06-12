@@ -121,61 +121,84 @@ export const getPostsByOffset: any = [
 ];
 
 export const getPostsByCursor: any = [
-  query("cursor", "Cursor number must be unsigned integer."),
-  query("limits", "Limits must be unsigned integer."),
+  query("cursor")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Cursor number must be unsigned integer."),
+
+  query("limits")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Limits must be unsigned integer."),
+
   async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req).array({ onlyFirstError: true });
-    if (errors.length > 0) {
-      console.log("error");
-      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
-    }
+    try {
+      const errors = validationResult(req).array({
+        onlyFirstError: true,
+      });
 
-    const lastCursor = +req.query.cursor!;
-    const limits = +req.query.limits! || 5;
+      if (errors.length > 0) {
+        return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+      }
 
-    const userId = req.userId;
-    await checkUserIfNotExist(userId);
+      const lastCursor = Number(req.query.cursor) || 0;
+      const limits = Number(req.query.limits) || 5;
 
-    const options = {
-      take: limits + 1,
-      skip: lastCursor ? 1 : 0,
-      cursor: lastCursor ? { id: lastCursor } : undefined,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        body: true,
-        image: true,
-        author: {
-          select: {
-            fullName: true,
+      await checkUserIfNotExist(req.userId);
+
+      const options = {
+        where: lastCursor
+          ? {
+              id: {
+                lt: lastCursor,
+              },
+            }
+          : {},
+
+        take: limits + 1,
+
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          body: true,
+          image: true,
+          author: {
+            select: {
+              fullName: true,
+            },
           },
+          updatedAt: true,
         },
-        updatedAt: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    };
 
-    // const posts = await getPostListsByPagination(options);
-    const cacheKey = `posts:cursor:${lastCursor}:limits:${limits}`;
-    const posts = await getOrSetCache(cacheKey, async () => {
-      return await getPostListsByPagination(options);
-    });
+        orderBy: {
+          id: "desc",
+        },
+      };
 
-    const hasNextPage = posts.length > +limits;
-    if (hasNextPage) {
-      posts.pop();
+      const cacheKey = `posts:cursor:${lastCursor}:limits:${limits}`;
+
+      const posts = await getOrSetCache(cacheKey, async () => {
+        return await getPostListsByPagination(options);
+      });
+
+      const hasNextPage = posts.length > limits;
+
+      if (hasNextPage) {
+        posts.pop();
+      }
+
+      const nextCursor = posts.length > 0 ? posts[posts.length - 1].id : null;
+
+      return res.status(200).json({
+        message: "Posts retrieved successfully.",
+        posts,
+        hasNextPage,
+        nextCursor,
+        prevCursor: lastCursor || null,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const newCursor = posts.length > 0 ? posts[posts.length - 1]!.id : null;
-
-    res.status(200).json({
-      message: "Posts retrieved successfully.",
-      posts,
-      hasNextPage,
-      newCursor,
-    });
   },
 ];
