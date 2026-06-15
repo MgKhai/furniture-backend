@@ -40,7 +40,7 @@ var corsOptions = {
 };
 
 app.use((req, res, next) => {
-  res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   next();
 });
 
@@ -50,9 +50,20 @@ app
   .use(express.json())
   .use(cookieParser())
   .use(cors(corsOptions))
-  .use(helmet())
+  .use(
+    helmet({
+      crossOriginResourcePolicy: {
+        policy: "cross-origin",
+      },
+    })
+  )
   .use(compression())
   .use(limiter);
+
+app.use(
+  "/optimize",
+  express.static(path.join(process.cwd(), "src/uploads/optimize"))
+);
 
 i18next
   .use(Backend)
