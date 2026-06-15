@@ -32,7 +32,7 @@ export const createNewProduct = async (data: any) => {
 
     images: {
       create: data.images.map((image: string) => ({
-        path: image,
+        path: image.split(".")[0] + ".webp",
       })),
     },
   };

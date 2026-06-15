@@ -125,6 +125,7 @@ export const getProductsByCursor: any = [
         select: {
           id: true,
           name: true,
+          description: true,
           price: true,
           discount: true,
           status: true,
@@ -148,6 +149,14 @@ export const getProductsByCursor: any = [
         return await getProductListsByPagination(options);
       });
 
+      const formattedProducts = products.map((product: any) => ({
+        ...product,
+        images: product.images.map((image: any) => ({
+          ...image,
+          path: "/optimize/" + image.path.replace(/\.[^/.]+$/, ".webp"),
+        })),
+      }));
+
       const hasNextPage = products.length > limits;
 
       if (hasNextPage) {
@@ -159,7 +168,7 @@ export const getProductsByCursor: any = [
 
       return res.status(200).json({
         message: "Products retrieved successfully.",
-        products,
+        products: formattedProducts,
         hasNextPage,
         nextCursor,
         prevCursor: lastCursor,
