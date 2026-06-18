@@ -167,16 +167,5 @@ export const getPostWithRelations = async (id: number) => {
 
 // offset pagination
 export const getPostListsByPagination = async (options: any) => {
-  return prisma.post.findMany({
-    ...options,
-    include: {
-      tags: {
-        include: {
-          tag: {
-            name: true,
-          },
-        },
-      },
-    },
-  });
+  return prisma.post.findMany(options);
 };
