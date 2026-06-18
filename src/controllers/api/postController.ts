@@ -151,15 +151,6 @@ export const getPostsByCursor: any = [
             fullName: true,
           },
         },
-        tags: {
-          select: {
-            tag: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
         updatedAt: true,
       },
       orderBy: {
