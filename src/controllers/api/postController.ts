@@ -41,7 +41,7 @@ export const getPost: any = [
       author: post!.author!.fullName,
       category: post!.category!.name,
       type: post!.type!.name,
-      tags: post!.tags?.map((tag: any) => tag.name) || [],
+      tags: post!.tags,
       updatedAt: post!.updatedAt,
     };
 
