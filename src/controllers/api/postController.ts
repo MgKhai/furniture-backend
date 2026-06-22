@@ -85,13 +85,9 @@ export const getPost: any = [
       return next(createError("Product not found.", 404, errorCodes.notFound));
     }
 
-    const cacheData = `postt:id:${postId}`;
+    const cacheData = `posts:id:${postId}`;
     const post = await getOrSetCache(cacheData, async () => {
       return await getPostWithRelations(+postId!);
-    });
-
-    await cacheQueue.add("invalidateCache", {
-      pattern: "posts:*",
     });
 
     const modifiedPost = {
@@ -99,15 +95,11 @@ export const getPost: any = [
       title: post!.title,
       content: post!.content,
       body: post!.body,
-
       image: post!.image,
-
       author: post!.author?.fullName ?? null,
       category: post!.category?.name ?? null,
       type: post!.type?.name ?? null,
-
       tags: post!.tags?.map((t: Tag) => t) ?? [],
-
       updatedAt: post!.updatedAt,
     };
 
