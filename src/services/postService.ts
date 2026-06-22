@@ -102,7 +102,7 @@ export const updatePostById = async (postId: number, postData: PostArgs) => {
   if (postData.tags && postData.tags.length > 0) {
     data.tags = {
       set: [], // remove existing tags
-      connectOrCreate: postData.tags.map((tag) => ({
+      connectOrCreate: postData.tags.map((tag: any) => ({
         where: {
           name: tag,
         },

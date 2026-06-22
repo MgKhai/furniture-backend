@@ -1,18 +1,72 @@
+import { auth } from "./../../middleware/auth";
 import { Request, Response, NextFunction } from "express";
 import { body, validationResult, param, check, query } from "express-validator";
 import { createError } from "../../utils/error";
 import { errorCodes } from "../../config/errorCodes";
 import { checkUserIfNotExist } from "../../utils/auth";
 import {
+  getPostById,
   getPostListsByPagination,
   getPostWithRelations,
 } from "../../services/postService";
 import { getOrSetCache } from "../../utils/cache";
+import cacheQueue from "../../jobs/queues/cacheQueue";
+import { Tag } from "sanitize-html";
 
 interface CustomRequest extends Request {
   userId: number;
 }
 
+// export const getPost: any = [
+//   param("id", "Invalid post ID").notEmpty().isInt({ gt: 0 }),
+
+//   async (req: CustomRequest, res: Response, next: NextFunction) => {
+//     try {
+//       const errors = validationResult(req).array({ onlyFirstError: true });
+
+//       if (errors.length > 0) {
+//         return next(createError(errors[0]!.msg, 400, errorCodes.invalid));
+//       }
+
+//       await checkUserIfNotExist(req.userId);
+
+//       const postId = Number(req.params.id);
+//       const cacheKey = `post:id:${postId}`;
+
+//       const post = await getOrSetCache(cacheKey, async () => {
+//         return await getPostWithRelations(postId);
+//       });
+
+//       if (!post) {
+//         return next(createError("Post not found", 404, errorCodes.notFound));
+//       }
+
+//       const modifiedPost = {
+//         id: post.id,
+//         title: post.title,
+//         content: post.content,
+//         body: post.body,
+//         image: post.image,
+//         author: post.author?.fullName ?? null,
+//         category: post.category?.name ?? null,
+//         type: post.type?.name ?? null,
+//         tags:
+//           post.tags?.map((tag: any) => ({
+//             name: tag.name.trim(),
+//           })) ?? [],
+
+//         updatedAt: post.updatedAt,
+//       };
+
+//       return res.status(200).json({
+//         message: "Post retrieved successfully",
+//         post: modifiedPost,
+//       });
+//     } catch (err) {
+//       return next(err);
+//     }
+//   },
+// ];
 export const getPost: any = [
   param("id", "Invalid post ID").notEmpty().isInt({ gt: 0 }),
   async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -25,11 +79,19 @@ export const getPost: any = [
     await checkUserIfNotExist(userId);
 
     const postId = req.params.id;
+    const checkProduct = await getPostById(+postId!);
 
-    // const post = await getPostWithRelations(+postId!);
-    const cacheData = `post:id:${postId}`;
+    if (!checkProduct) {
+      return next(createError("Product not found.", 404, errorCodes.notFound));
+    }
+
+    const cacheData = `postt:id:${postId}`;
     const post = await getOrSetCache(cacheData, async () => {
       return await getPostWithRelations(+postId!);
+    });
+
+    await cacheQueue.add("invalidateCache", {
+      pattern: "posts:*",
     });
 
     const modifiedPost = {
@@ -37,17 +99,21 @@ export const getPost: any = [
       title: post!.title,
       content: post!.content,
       body: post!.body,
+
       image: post!.image,
-      author: post!.author!.fullName,
-      category: post!.category!.name,
-      type: post!.type!.name,
-      tags: post!.tags,
+
+      author: post!.author?.fullName ?? null,
+      category: post!.category?.name ?? null,
+      type: post!.type?.name ?? null,
+
+      tags: post!.tags?.map((t: Tag) => t) ?? [],
+
       updatedAt: post!.updatedAt,
     };
 
     res
       .status(200)
-      .json({ message: "Post retrieved successfully", post: modifiedPost });
+      .json({ message: "Post retrieved successfully", modifiedPost });
   },
 ];
 
