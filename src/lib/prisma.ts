@@ -20,26 +20,5 @@ export const prisma = new PrismaClient({ adapter }).$extends({
         },
       },
     },
-
-    post: {
-      image: {
-        needs: { image: true },
-        compute(post) {
-          if (!post.image) return null;
-          return "/optimize/" + post.image.split(".")[0] + ".webp";
-        },
-      },
-
-      updatedAt: {
-        needs: { updatedAt: true },
-        compute(post) {
-          return post.updatedAt.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          });
-        },
-      },
-    },
   },
 });
