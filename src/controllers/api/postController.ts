@@ -105,7 +105,7 @@ export const getPost: any = [
 
     res
       .status(200)
-      .json({ message: "Post retrieved successfully", modifiedPost });
+      .json({ message: "Post retrieved successfully", post: modifiedPost });
   },
 ];
 

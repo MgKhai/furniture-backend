@@ -4,12 +4,15 @@ import { createError } from "../../utils/error";
 import { errorCodes } from "../../config/errorCodes";
 import { checkUserIfNotExist } from "../../utils/auth";
 import {
+  getCategoryList,
   getProductById,
   getProductListsByPagination,
   getProductWithRelations,
+  getTypeList,
 } from "../../services/productService";
 import { getOrSetCache } from "../../utils/cache";
 import { disconnect } from "cluster";
+import { getUserById } from "../../services/authService";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -24,7 +27,8 @@ export const getProduct: any = [
     }
 
     const userId = req.userId;
-    await checkUserIfNotExist(userId);
+    const user = await getUserById(+userId);
+    await checkUserIfNotExist(user);
 
     const productId = req.params.id;
     const checkProduct = await getProductById(+productId!);
@@ -51,9 +55,10 @@ export const getProduct: any = [
       images: product.images.map((image: any) => image.path),
     };
 
-    res
-      .status(200)
-      .json({ message: "Product retrieved successfully", modifiedProduct });
+    res.status(200).json({
+      message: "Product retrieved successfully",
+      product: modifiedProduct,
+    });
   },
 ];
 
@@ -85,7 +90,9 @@ export const getProductsByCursor: any = [
       const category = req.query.category as string;
       const type = req.query.type as string;
 
-      await checkUserIfNotExist(req.userId);
+      const userId = req.userId;
+      const user = await getUserById(+userId);
+      await checkUserIfNotExist(user);
 
       const categoryList =
         category
@@ -178,3 +185,18 @@ export const getProductsByCursor: any = [
     }
   },
 ];
+
+export const getCategoryType: any = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.userId;
+  const user = await getUserById(+userId);
+  await checkUserIfNotExist(user);
+
+  const categories = await getCategoryList();
+  const types = await getTypeList();
+
+  res.status(200).json({ message: "Categories & Types", categories, types });
+};

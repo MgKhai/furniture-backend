@@ -14,6 +14,7 @@ import {
   getPostsByCursor,
 } from "../../../controllers/api/postController";
 import {
+  getCategoryType,
   getProduct,
   getProductsByCursor,
 } from "../../../controllers/api/productController";
@@ -43,6 +44,8 @@ router.get("/posts", auth, getPostsByOffset);
 
 //products
 router.get("/products/:id", auth, getProduct);
-router.get("/products", auth, getProductsByCursor); // cursor-based pagination
+router.get("/products", auth, getProductsByCursor); // cursor-based pagination\
+
+router.get("/filter-type", auth, getCategoryType);
 
 export default router;
