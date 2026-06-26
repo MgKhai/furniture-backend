@@ -63,126 +63,234 @@ export const getProduct: any = [
 ];
 
 // cursor-based pagination
+// export const getProductsByCursor: any = [
+//   query("cursor")
+//     .optional()
+//     .isInt({ gt: 0 })
+//     .withMessage("Cursor number must be unsigned integer."),
+
+//   query("limits")
+//     .optional()
+//     .isInt({ gt: 0 })
+//     .withMessage("Limits must be unsigned integer."),
+
+//   async (req: CustomRequest, res: Response, next: NextFunction) => {
+//     try {
+//       const errors = validationResult(req).array({
+//         onlyFirstError: true,
+//       });
+
+//       if (errors.length > 0) {
+//         return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+//       }
+
+//       const lastCursor = Number(req.query.cursor) || 0;
+//       const limits = Number(req.query.limits) || 5;
+
+//       const categories = req.query.categories as string;
+//       const types = req.query.types as string;
+
+//       const userId = req.userId;
+//       const user = await getUserById(+userId);
+//       await checkUserIfNotExist(user);
+
+//       const categoryList =
+//         categories
+//           ?.split(",")
+//           .map((c) => Number(c))
+//           .filter((id) => id > 0) || [];
+
+//       const typeList =
+//         types
+//           ?.split(",")
+//           .map((t) => Number(t))
+//           .filter((id) => id > 0) || [];
+
+//       const where: any = {};
+
+//       if (categoryList.length > 0) {
+//         where.categoryId = {
+//           in: categoryList,
+//         };
+//       }
+
+//       if (typeList.length > 0) {
+//         where.typeId = {
+//           in: typeList,
+//         };
+//       }
+
+//       const options = {
+//         where,
+
+//         take: limits + 1,
+
+//         skip: lastCursor ? 1 : 0,
+
+//         cursor: lastCursor ? { id: lastCursor } : undefined,
+
+//         select: {
+//           id: true,
+//           name: true,
+//           description: true,
+//           price: true,
+//           discount: true,
+//           status: true,
+
+//           images: {
+//             take: 1,
+//             select: {
+//               id: true,
+//               path: true,
+//             },
+//           },
+//         },
+
+//         orderBy: {
+//           id: "desc",
+//         },
+//       };
+
+//       const cacheKey = `products:cursor:${lastCursor}:limits:${limits}`;
+//       const products = await getOrSetCache(cacheKey, async () => {
+//         return await getProductListsByPagination(options);
+//       });
+
+//       const formattedProducts = products.map((product: any) => ({
+//         ...product,
+//         images: product.images.map((image: any) => ({
+//           ...image,
+//           path: "/optimize/" + image.path.replace(/\.[^/.]+$/, ".webp"),
+//         })),
+//       }));
+
+//       const hasNextPage = products.length > limits;
+
+//       if (hasNextPage) {
+//         products.pop();
+//       }
+
+//       const nextCursor =
+//         products.length > 0 ? products[products.length - 1].id : null;
+
+//       return res.status(200).json({
+//         message: "Products retrieved successfully.",
+//         products: formattedProducts,
+//         hasNextPage,
+//         nextCursor,
+//         prevCursor: lastCursor,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   },
+// ];
+
 export const getProductsByCursor: any = [
-  query("cursor")
-    .optional()
-    .isInt({ gt: 0 })
-    .withMessage("Cursor number must be unsigned integer."),
-
-  query("limits")
-    .optional()
-    .isInt({ gt: 0 })
-    .withMessage("Limits must be unsigned integer."),
-
+  query("cursor", "Cursor must be Post ID.").isInt({ gt: 0 }).optional(),
+  query("limits", "Limit number must be unsigned integer.")
+    .isInt({ gt: 3 })
+    .optional(),
   async (req: CustomRequest, res: Response, next: NextFunction) => {
-    try {
-      const errors = validationResult(req).array({
-        onlyFirstError: true,
-      });
-
-      if (errors.length > 0) {
-        return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
-      }
-
-      const lastCursor = Number(req.query.cursor) || 0;
-      const limits = Number(req.query.limits) || 5;
-
-      const category = req.query.category as string;
-      const type = req.query.type as string;
-
-      const userId = req.userId;
-      const user = await getUserById(+userId);
-      await checkUserIfNotExist(user);
-
-      const categoryList =
-        category
-          ?.split(",")
-          .map(Number)
-          .filter((id) => id > 0) || [];
-
-      const typeList =
-        type
-          ?.split(",")
-          .map(Number)
-          .filter((id) => id > 0) || [];
-
-      const where: any = {};
-
-      if (categoryList.length > 0) {
-        where.categoryId = {
-          in: categoryList,
-        };
-      }
-
-      if (typeList.length > 0) {
-        where.typeId = {
-          in: typeList,
-        };
-      }
-
-      const options = {
-        where,
-
-        take: limits + 1,
-
-        skip: lastCursor ? 1 : 0,
-
-        cursor: lastCursor ? { id: lastCursor } : undefined,
-
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          discount: true,
-          status: true,
-
-          images: {
-            take: 1,
-            select: {
-              id: true,
-              path: true,
-            },
-          },
-        },
-
-        orderBy: {
-          id: "desc",
-        },
-      };
-
-      const cacheKey = `products:cursor:${lastCursor}:limits:${limits}`;
-      const products = await getOrSetCache(cacheKey, async () => {
-        return await getProductListsByPagination(options);
-      });
-
-      const formattedProducts = products.map((product: any) => ({
-        ...product,
-        images: product.images.map((image: any) => ({
-          ...image,
-          path: "/optimize/" + image.path.replace(/\.[^/.]+$/, ".webp"),
-        })),
-      }));
-
-      const hasNextPage = products.length > limits;
-
-      if (hasNextPage) {
-        products.pop();
-      }
-
-      const nextCursor =
-        products.length > 0 ? products[products.length - 1].id : null;
-
-      return res.status(200).json({
-        message: "Products retrieved successfully.",
-        products: formattedProducts,
-        hasNextPage,
-        nextCursor,
-        prevCursor: lastCursor,
-      });
-    } catch (error) {
-      next(error);
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    // If validation error occurs
+    if (errors.length > 0) {
+      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
     }
+
+    const lastCursor = req.query.cursor;
+    const limits = req.query.limits || 5;
+    const category = req.query.category;
+    const type = req.query.type;
+
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExist(user);
+
+    let categoryList: number[] = [];
+    let typeList: number[] = [];
+
+    if (category) {
+      categoryList = category
+        .toString()
+        .split(",")
+        .map((c) => Number(c))
+        .filter((c) => c > 0);
+    }
+
+    if (type) {
+      typeList = type
+        .toString()
+        .split(",")
+        .map((t) => Number(t))
+        .filter((t) => t > 0);
+    }
+
+    console.log("categoryList -----", categoryList);
+
+    const where = {
+      AND: [
+        categoryList.length > 0 ? { categoryId: { in: categoryList } } : {},
+        typeList.length > 0 ? { typeId: { in: typeList } } : {},
+      ],
+    };
+
+    const options = {
+      where,
+      take: +limits + 1,
+      skip: lastCursor ? 1 : 0,
+      cursor: lastCursor ? { id: +lastCursor } : undefined,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        discount: true,
+        status: true,
+        images: {
+          select: {
+            id: true,
+            path: true,
+          },
+          take: 1, // Limit to the first image
+        },
+      },
+      orderBy: {
+        id: "desc",
+      },
+    };
+
+    const cacheKey = `products:${JSON.stringify(req.query)}`;
+    const products = await getOrSetCache(cacheKey, async () => {
+      return await getProductListsByPagination(options);
+    });
+
+    const formattedProducts = products.map((product: any) => ({
+      ...product,
+      images: product.images.map((image: any) => ({
+        ...image,
+        path: "/optimize/" + image.path.replace(/\.[^/.]+$/, ".webp"),
+      })),
+    }));
+
+    const hasNextPage = formattedProducts.length > +limits;
+
+    if (hasNextPage) {
+      formattedProducts.pop();
+    }
+
+    const nextCursor =
+      formattedProducts.length > 0
+        ? formattedProducts[formattedProducts.length - 1].id
+        : null;
+
+    res.status(200).json({
+      message: "Get All infinite products",
+      hasNextPage,
+      nextCursor,
+      prevCursor: lastCursor,
+      products: formattedProducts,
+    });
   },
 ];
 
