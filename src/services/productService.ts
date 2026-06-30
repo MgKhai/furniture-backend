@@ -176,6 +176,7 @@ export const getProductWithRelations = async (id: number) => {
       },
       images: {
         select: {
+          id: true,
           path: true,
         },
       },

@@ -51,8 +51,11 @@ export const getProduct: any = [
       inventory: product.inventory,
       category: product.category.name,
       type: product.type.name,
-      tags: product.tags.map((tag: any) => tag.name),
-      images: product.images.map((image: any) => image.path),
+      tags: product.tags,
+      images: product.images.map((image: any) => ({
+        id: image.id,
+        path: "/optimize/" + image.path.split(".")[0] + ".webp",
+      })),
     };
 
     res.status(200).json({
