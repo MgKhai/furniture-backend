@@ -1,4 +1,10 @@
-import { Request, Response, NextFunction, RequestHandler } from "express";
+import {
+  Request,
+  Response,
+  NextFunction,
+  RequestHandler,
+  response,
+} from "express";
 import { body, check, param, validationResult, query } from "express-validator";
 import { createError } from "../../utils/error";
 import { errorCodes } from "../../config/errorCodes";
@@ -13,6 +19,11 @@ import {
 import { getOrSetCache } from "../../utils/cache";
 import { disconnect } from "cluster";
 import { getUserById } from "../../services/authService";
+import {
+  addProductToFavourite,
+  removeProductToFavourite,
+} from "../../services/userService";
+import cacheQueue from "../../jobs/queues/cacheQueue";
 
 interface CustomRequest extends Request {
   userId: number;
@@ -311,3 +322,44 @@ export const getCategoryType: any = async (
 
   res.status(200).json({ message: "Categories & Types", categories, types });
 };
+
+export const toggleFavourite: any = [
+  body("productId", "Product ID must not be empty.").isInt({ gt: 0 }),
+  body("favourite", "Favourite must not be empty.").isBoolean(),
+  async (req: CustomRequest, res: Response, next: NextFunction) => {
+    console.log(req.body);
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    // If validation error occurs
+    if (errors.length > 0) {
+      return next(createError(errors[0]?.msg, 400, errorCodes.invalid));
+    }
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExist(user);
+
+    const { productId, favourite } = req.body;
+
+    if (favourite) {
+      await addProductToFavourite(+user!.id, +productId);
+    } else {
+      await removeProductToFavourite(+user!.id, +productId);
+    }
+
+    await cacheQueue.add(
+      "invalidate-product-cache",
+      {
+        pattern: "products:*",
+      },
+      {
+        jobId: `invalidate-${Date.now()}`,
+        priority: 1,
+      }
+    );
+
+    res.status(200).json({
+      message: favourite
+        ? "Successfully added favourite"
+        : "Successfully removed favourite",
+    });
+  },
+];
