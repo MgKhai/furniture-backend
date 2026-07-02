@@ -42,6 +42,7 @@ model User {
   updatedAt   DateTime @updatedAt
   posts       Post[]
   orders      Order[]
+  products    Product[] @relation("UserFavorites")
 } 
 
 model Post {
@@ -98,6 +99,7 @@ model Product {
   images      Image[]
   orders  ProductsOnOrder[]
   tags       ProductTag[]
+  users      User[] @relation("UserFavorites")
 }
 
 model Image{
